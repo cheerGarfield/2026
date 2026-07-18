@@ -1,0 +1,272 @@
+=== page 0 ===
+F32C 二自由度云台
+使用说明
+推荐关注我们的公众号获取更新资料
+版本说明：
+版本
+日期
+内容说明
+V1.0
+2026/5
+第一次发布
+网址:www.wheeltec.net
+
+=== page 1 ===
+目录
+1. 接口介绍与性能参数...................................................................................... 3
+1.1. 接口介绍............................................................................................... 3
+1.2. 性能参数............................................................................................... 4
+2. 上位机使用与调参.......................................................................................... 5
+3. 简易参考协议.................................................................................................. 6
+4. 用户例程使用说明.......................................................................................... 8
+4.1. 云台与单片机接线说明....................................................................... 8
+5. 滑环使用接线说明.........................................................................................11
+6. 滑环自行更换................................................................................................ 13
+7. 机械参数........................................................................................................ 16
+8. 更新固件........................................................................................................ 17
+9. 注意事项........................................................................................................ 18
+
+=== page 2 ===
+1. 接口介绍与性能参数
+1.1.接口介绍
+图1 云台正反面图示
+配套的GH1.25-5Pin 单头杜邦线接入接口一，线序如下图所示（红：5V；黄：
+RX；绿：TX；黑：GND），串口控制时单片机或TTL 转USB 模块需与电机电
+源共地。
+图2 配套线材接口图示
+Y 轴电机接口二无需使用，悬空即可。
+滑环共有两个接口引出，带扣的GH1.25-5Pin 接口为Y 轴电机的电源和通信
+接口，接到Y 轴电机接口一。剩下的MX1.25-4PIN 端子为自由接口，下图的滑
+环接口二，与X 轴电机接口二导通，线序如下图所示一一对应，可自行定义线
+序用途。注意：滑环只支持最大1A 电流，请勿过流使用。
+
+=== page 3 ===
+可以从下图看到，滑环接口二是与X 轴电机的接口二是一一对应上的，即
+是如果给X 轴电机接口二的1 号引脚提供5V 的电源，那么滑环接口二的1 号引
+脚即输出的是5V 电源。其余对应引脚也是如此。
+图3 滑环接口二与X 轴电机接口二线序
+1.2.性能参数
+表1 电机性能参数表
+输入电压范围
+8 至15V，推荐3S 电池
+电机最大转速
+1000RPM（12V 下对应）
+电机最小转速
+1RPM
+电机最大工作电流
+1.5A
+电机额定电流
+0.4A
+角度分辨率
+14bit
+通信方式
+TTL3.3V
+工作温度
+0 至60℃
+保护
+过流保护
+闭环控制
+速度环、位置环控制
+控制频率
+建议100HZ，最大200HZ
+闭环反馈频率
+PWM 控制频率20KHz，速度环1KHZ 和位置环1KHz
+
+=== page 4 ===
+2. 上位机使用与调参
+接线可参考F32C 无刷电机使用手册第二章节内容，电机内部无反反接保护，
+请确保正确连接后再上电，避免电机损坏。
+二自由云台整体无法直接通过上位机进行控制，上位机只能调试单个单机，
+所以需要对电机进行调参时，需拔下Y 轴电机的电源线。接着需要调参哪个电
+机，对哪个电机进行供电和上位机控制即可。
+图4 拔下Y 轴电机电源线
+具体调参与上位机使用教程可参考“F32C 无刷电机使用手册”。
+若负载时出现超调现象，可调大速度PID 的KP、KI 参数达到稳定的效果。
+PID 参数范围为0~256，根据经验调试，只需要调节速度环PID 参数即可，P 范
+围基本为5~50，I 参数为5~100，从小到大调试即可。（注意：参数调大后空载
+会出现高频振动，可看资料包中的使用视频进行参考）
+
+=== page 5 ===
+图5 上位机示意图
+3. 简易参考协议
+此二自由度云台由两个F32C 无刷电机构成，控制协议为F32C 电机的控制
+协议，详细协议参考F32C 无刷电机使用手册，此处仅为简易快速使用参考协议。
+我们默认X 轴电机为1 号电机、Y 轴电机为2 号电机。
+使能协议：
+X 轴：7A 01 06 7D 7B
+Y 轴：7A 02 06 7E 7B
+控制为多圈位置模式（T 型轨迹规划）：
+X 轴：7A 01 00 00 01 7A 7B
+Y 轴：7A 02 00 00 01 79 7B
+控制电机转速为100RPM：
+X 轴：7A 01 01 00 64 1E 7B
+Y 轴：7A 02 01 00 64 1D 7B
+控制电机转动到360 度：
+X 轴：7A 01 02 00 00 0E 10 67 7B
+
+=== page 6 ===
+Y 轴：7A 02 02 00 00 0E 10 64 7B
+控制电机转动回到0 度：
+X 轴：7A 01 02 00 00 00 00 79 7B
+Y 轴：7A 02 02 00 00 00 00 7A 7B
+
+=== page 7 ===
+4. 用户例程使用说明
+本章内容主要介绍资料中提供的STM32F103C8T6 例程，如何配合云台使用。
+4.1.云台与单片机接线说明
+云台
+STM32F103C8T6
+电源
++
+电源正极
+-
+GND
+电源负极
+TX
+PA3
+RX
+PA2
+想要控制云台转动，向电机发送相应的控制协议即可。
+控制步骤分为：1.使能电机2.选择控制模式3.发送速度4.如果是位置控制，
+则再发送目标角度。
+所以STM32F103C8T6 中只需要初始化好串口2 即可正常控制云台电机。提
+供的例程中，初始化了串口2 发送和DMA 接收，并开启了空闲中断。
+void uart2_init(u32 bound)
+{
+//GPIO 端口设置
+GPIO_InitTypeDef GPIO_InitStructure;
+USART_InitTypeDef USART_InitStructure;
+NVIC_InitTypeDef NVIC_InitStructure;
+DMA_InitTypeDef DMA_InitStructure;
+RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA, ENABLE);//使能
+GPIOA 时钟
+RCC_APB1PeriphClockCmd(RCC_APB1Periph_USART2, ENABLE);//使能
+USART2
+RCC_AHBPeriphClockCmd(RCC_AHBPeriph_DMA1,ENABLE);//使能DMA 传
+输
+//USART2_TX
+GPIOA.2
+GPIO_InitStructure.GPIO_Pin = GPIO_Pin_2; //PA.2
+GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;
+//复用推挽输出
+GPIO_Init(GPIOA, &GPIO_InitStructure);//初始化GPIOA.2
+
+=== page 8 ===
+//USART2_RX
+GPIOA.3 初始化
+GPIO_InitStructure.GPIO_Pin = GPIO_Pin_3;//PA3
+GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;//浮空输入
+GPIO_Init(GPIOA, &GPIO_InitStructure);//初始化GPIOA.3
+//USART 初始化设置
+USART_InitStructure.USART_BaudRate = bound;//串口波特率
+USART_InitStructure.USART_WordLength = USART_WordLength_8b;//字长为8
+位数据格式
+USART_InitStructure.USART_StopBits = USART_StopBits_1;//一个停止位
+USART_InitStructure.USART_Parity = USART_Parity_No;//无奇偶校验位
+USART_InitStructure.USART_HardwareFlowControl =
+USART_HardwareFlowControl_None;//无硬件数据流控制
+USART_InitStructure.USART_Mode = USART_Mode_Rx | USART_Mode_Tx;
+//收发模式
+USART_Init(USART2, &USART_InitStructure);
+DMA_DeInit(DMA1_Channel6);
+DMA_InitStructure.DMA_BufferSize = 10;//接收最大长度威47 字节
+DMA_InitStructure.DMA_DIR = DMA_DIR_PeripheralSRC;//串口接收，外设到
+内存
+DMA_InitStructure.DMA_M2M = DMA_M2M_Disable;
+DMA_InitStructure.DMA_MemoryBaseAddr = (u32)usart2_receive_data;
+DMA_InitStructure.DMA_MemoryDataSize =
+DMA_MemoryDataSize_Byte;
+DMA_InitStructure.DMA_MemoryInc = DMA_MemoryInc_Enable;
+DMA_InitStructure.DMA_Mode = DMA_Mode_Normal;
+DMA_InitStructure.DMA_PeripheralBaseAddr = (u32)(&USART2->DR);
+DMA_InitStructure.DMA_PeripheralDataSize = DMA_PeripheralDataSize_Byte;
+DMA_InitStructure.DMA_PeripheralInc = DMA_PeripheralInc_Disable;
+DMA_InitStructure.DMA_Priority = DMA_Priority_High;
+DMA_Init(DMA1_Channel6,&DMA_InitStructure);
+DMA_ClearFlag(DMA1_FLAG_TC6);
+DMA_Cmd(DMA1_Channel6,ENABLE);
+//Usart1 NVIC 配置
+NVIC_InitStructure.NVIC_IRQChannel = USART2_IRQn;
+NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority=1 ;//抢占优先级1
+NVIC_InitStructure.NVIC_IRQChannelSubPriority = 1;
+//子优先级1
+NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+//IRQ 通道使能
+NVIC_Init(&NVIC_InitStructure);
+//根据指定的参数初始化VIC 寄存器
+USART_ITConfig(USART2, USART_IT_IDLE, ENABLE);//开启串口接收中断
+USART_DMACmd(USART2,USART_DMAReq_Rx,ENABLE);
+
+=== page 9 ===
+USART_Cmd(USART2, ENABLE);
+//使能串口2
+}
+如烧录位置控制的例程代码后，按前文所述的方式将单片机与F32C 连
+接，先给电机通电后再给单片机通电可以看到电机有力了。按下用户按键可以让
+电机转动90 度。电机反馈的实时角度也为九十度。
+图1 单片机控制图示
+
+=== page 10 ===
+5. 滑环使用接线说明
+下面以正点原子的K230 连接滑环接口二进行演示。
+我们将原本的接口剪掉，重新焊接回一个XH2.0-4Pin 的一个接口，这样就
+可以直接的连接到K230 的接口上。可根据自身的使用来决定延长线材的长度。
+由下图和上面第一章节的图二可得，X 轴电机接口二的4 号引脚为5V，3
+号引脚为GND，2 号引脚为TX，1 号引脚为RX。
+图6 滑环原本模样
+图7 K230 单头线与滑环焊接起来
+
+=== page 11 ===
+图8 剪下线材的利用图示
+图9 接口二与单片机连接图示
+
+=== page 12 ===
+6. 滑环自行更换
+如果使用过程中滑环意外损坏后，可以再我司店铺自行购买直径6.5mm，长
+度12mm 的滑环自行更换，更换步骤如下：
+1
+拆除X 轴电机后盖
+2
+拆除固定铜柱
+3
+拔除旧的滑环
+
+=== page 13 ===
+4
+安装新的滑环
+再将拆解步骤倒过来即是正常安装滑环的步骤。在滑环连接板子两个接
+口时，注意连接正确的接口。安装完后需打点热熔胶固定滑环。
+
+=== page 14 ===
+5
+重新给X 轴电机下载程序，以确保电机正常使用。
+
+=== page 15 ===
+7. 机械参数
+图10 支架一机械参数图示
+图11 支架二机械图示
+
+=== page 16 ===
+8. 更新固件
+注意：此事项非必要不进行烧录。
+更新固件时需要拔除另一个电机的电源线，如更新X 轴电机的固件时，需
+拔除Y 轴电机的电源线。
+连接usb 转TTL 模块后，选择对应的COM 口，选择对应的bin 文件，波特
+率输入115200 即可点击Star IAP 按键进行下载，显示烧录已完成即是已经更新
+了代码。（更新代码前需要云台处于无负载状态，因为烧录完成后电机会进行角
+度的校准，有负载会影响此功能）
+图12 烧录软件示意图
+
+=== page 17 ===
+9. 注意事项
+1
+严格按照线序接线，电源线接反会导致电机损坏。
+2
+所有接口都不支持热插拔，皆需插线连接后再上电。
+3
+严格按照手册上的电压区间供电，禁止过压使用。
+4
+禁止私自拆解电机，拆解电机会导致无法正常工作。
+5
+滑环最大电流只支持1A，请勿过流使用。
